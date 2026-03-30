@@ -1,0 +1,159 @@
+version: '3.8'
+
+services:
+  # 主应用服务
+  oil-monitor:
+    image: ${DOCKER_USERNAME:-yourusername}/guangxi-oil-monitor:latest
+    container_name: guangxi-oil-monitor
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      - oil_data:/app/data
+      - oil_logs:/app/logs
+      - ./config:/app/config:ro
+    environment:
+      - TZ=Asia/Shanghai
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.deepseek.com/v1}
+      - DATABASE_URL=postgresql://${DB_USER:-oilmonitor}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-oil_prices}
+      - REDIS_URL=redis://redis:6379/0
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - COLLECTION_SCHEDULE=${COLLECTION_SCHEDULE:-0 8 * * *}
+      - ANALYSIS_SCHEDULE=${ANALYSIS_SCHEDULE:-0 9 * * *}
+    depends_on:
+      - postgres
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - oil-network
+
+  # PostgreSQL数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: oil-monitor-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${DB_USER:-oilmonitor}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME:-oil_prices}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-oilmonitor}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - oil-network
+    command: >
+      postgres -c max_connections=100
+               -c shared_buffers=256MB
+               -c effective_cache_size=1GB
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    container_name: oil-monitor-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-oilmonitor123}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - oil-network
+
+  # 定时任务调度器
+  scheduler:
+    image: ${DOCKER_USERNAME:-yourusername}/guangxi-oil-monitor:latest
+    container_name: oil-monitor-scheduler
+    restart: unless-stopped
+    depends_on:
+      - oil-monitor
+      - redis
+    volumes:
+      - oil_data:/app/data
+      - oil_logs:/app/logs
+      - ./config:/app/config:ro
+    environment:
+      - TZ=Asia/Shanghai
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL}
+      - DATABASE_URL=postgresql://${DB_USER:-oilmonitor}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-oil_prices}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-oilmonitor123}@redis:6379/0
+      - MODE=scheduler
+    networks:
+      - oil-network
+    command: >
+      sh -c "python app/scheduler.py"
+
+  # Nginx反向代理（可选）
+  nginx:
+    image: nginx:alpine
+    container_name: oil-monitor-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./html:/usr/share/nginx/html:ro
+    depends_on:
+      - oil-monitor
+    networks:
+      - oil-network
+
+  # 监控面板（可选）
+  monitor:
+    image: louislam/uptime-kuma:latest
+    container_name: oil-monitor-uptime
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      - uptime_data:/app/data
+    environment:
+      - UPTIME_KUMA_DB_PATH=/app/data/kuma.db
+    networks:
+      - oil-network
+
+volumes:
+  oil_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ./data
+      o: bind
+  oil_logs:
+    driver: local
+    driver_opts:
+      type: none
+      device: ./logs
+      o: bind
+  postgres_data:
+  redis_data:
+  uptime_data:
+
+networks:
+  oil-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

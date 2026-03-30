@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  # 主应用服务
+  oil-monitor:
+    build: .
+    container_name: guangxi-oil-monitor
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config:/app/config
+    environment:
+      - TZ=Asia/Shanghai
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-sk-demo-key}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.deepseek.com/v1}
+      - DATABASE_URL=sqlite:///data/oil_prices.db
+      - LOG_LEVEL=INFO
+    command: >
+      sh -c "python app/main.py"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis缓存和消息队列
+  redis:
+    image: redis:7-alpine
+    container_name: oil-monitor-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+
+  # PostgreSQL数据库（可选，默认使用SQLite）
+  postgres:
+    image: postgres:15-alpine
+    container_name: oil-monitor-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=oilmonitor
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-oilmonitor123}
+      - POSTGRES_DB=oil_prices
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oilmonitor"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 定时任务调度器
+  scheduler:
+    build: .
+    container_name: oil-monitor-scheduler
+    restart: unless-stopped
+    depends_on:
+      - oil-monitor
+      - redis
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config:/app/config
+    environment:
+      - TZ=Asia/Shanghai
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL}
+      - REDIS_URL=redis://redis:6379/0
+    command: >
+      sh -c "python app/scheduler.py"
+
+  # Web界面（可选）
+  web-ui:
+    build: .
+    container_name: oil-monitor-web
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+      - ./web:/app/web
+    environment:
+      - API_URL=http://oil-monitor:8000
+    command: >
+      sh -c "cd web && python -m http.server 8080"
+
+volumes:
+  redis-data:
+  postgres-data:
