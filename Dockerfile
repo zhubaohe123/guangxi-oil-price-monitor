@@ -1,27 +1,40 @@
-# 使用Python 3.11作为基础镜像
+# 多阶段构建：第一阶段 - 构建依赖
+FROM python:3.11-slim as builder
+
+WORKDIR /app
+
+# 安装编译依赖
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# 创建虚拟环境
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# 升级pip并安装依赖
+COPY requirements.txt .
+RUN pip install --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
+
+# 第二阶段 - 运行环境
 FROM python:3.11-slim
 
-# 设置工作目录
 WORKDIR /app
 
 # 设置时区
 ENV TZ=Asia/Shanghai
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# 安装系统依赖
+# 安装运行时系统依赖
 RUN apt-get update && apt-get install -y \
     curl \
-    wget \
-    gnupg \
-    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# 复制依赖文件
-COPY requirements.txt .
-
-# 安装Python依赖
-RUN pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir gunicorn
+# 从构建阶段复制虚拟环境
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
 # 复制应用代码
 COPY . .
