@@ -1,13 +1,27 @@
 """
 简化主应用 - 先确保能启动
 """
+import os
+import sys
 import logging
 from fastapi import FastAPI
 import uvicorn
 
-from app.config_simple import settings
-from app.database_sync import init_db
-from app.routers.oil_prices_simple import router as oil_prices_router
+# 添加项目根目录到Python路径
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+try:
+    from app.config_simple import settings
+    from app.database_sync import init_db
+    from app.routers.oil_prices_simple import router as oil_prices_router
+except ImportError:
+    # 备用导入方式
+    import config_simple
+    settings = config_simple.settings
+    import database_sync
+    init_db = database_sync.init_db
+    import routers.oil_prices_simple
+    oil_prices_router = routers.oil_prices_simple.router
 
 # 配置日志
 logging.basicConfig(

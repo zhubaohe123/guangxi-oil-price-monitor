@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # 主应用服务 - 最小化配置
+  oil-monitor:
+    build: .
+    container_name: guangxi-oil-monitor
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - TZ=Asia/Shanghai
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-sk-demo-key}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.deepseek.com/v1}
+      - DATABASE_URL=sqlite:///data/oil_prices.db
+      - LOG_LEVEL=INFO
+    command: >
+      sh -c "cd /app && python -c '
+import sys
+sys.path.insert(0, \"/app\")
+from app.main_simple import app
+import uvicorn
+uvicorn.run(app, host=\"0.0.0.0\", port=8000)
+'"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    container_name: oil-monitor-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+
+volumes:
+  redis-data:

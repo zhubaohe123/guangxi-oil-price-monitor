@@ -55,5 +55,9 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # 暴露端口
 EXPOSE 8000
 
-# 启动命令 - 使用uvicorn运行简化版本
-CMD ["uvicorn", "app.main_simple:app", "--host", "0.0.0.0", "--port", "8000"]
+# 设置工作目录和Python路径
+WORKDIR /app
+ENV PYTHONPATH=/app:$PYTHONPATH
+
+# 启动命令 - 确保Python路径正确
+CMD ["sh", "-c", "cd /app && python -c 'import sys; sys.path.insert(0, \"/app\"); from app.main_simple import app; import uvicorn; uvicorn.run(app, host=\"0.0.0.0\", port=8000)'"]

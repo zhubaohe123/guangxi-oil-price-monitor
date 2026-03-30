@@ -1,13 +1,23 @@
 """
 简化调度器 - 定时任务
 """
+import os
+import sys
 import logging
 import time
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from app.config_simple import settings
+# 添加项目根目录到Python路径
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+try:
+    from app.config_simple import settings
+except ImportError:
+    # 备用导入方式
+    import config_simple
+    settings = config_simple.settings
 
 logger = logging.getLogger(__name__)
 
