@@ -55,5 +55,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # 暴露端口
 EXPOSE 8000
 
-# 启动命令 - 使用简单版本先测试
-CMD ["python", "app/main_simple.py"]
+# 启动命令 - 使用uvicorn
+CMD ["uvicorn", "app.main_simple:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
