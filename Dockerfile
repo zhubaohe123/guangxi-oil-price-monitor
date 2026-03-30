@@ -16,6 +16,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 # 升级pip并安装依赖
 COPY requirements.txt .
 RUN pip install --upgrade pip \
+    && pip install --no-cache-dir aiosqlite \
     && pip install --no-cache-dir -r requirements.txt
 
 # 第二阶段 - 运行环境
@@ -54,5 +55,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # 暴露端口
 EXPOSE 8000
 
-# 启动命令
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "app.main:app"]
+# 启动命令 - 使用简单版本先测试
+CMD ["python", "app/main_simple.py"]

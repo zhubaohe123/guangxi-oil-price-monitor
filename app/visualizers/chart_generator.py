@@ -11,7 +11,7 @@ import pandas as pd
 import numpy as np
 import os
 
-from app.config import settings
+from app.config_simple import settings
 from app.database.models import OilPrice
 from app.database import get_session
 

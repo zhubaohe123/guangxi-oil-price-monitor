@@ -1,13 +1,14 @@
 """
-配置文件
+配置文件 - 简化版本，避免pydantic版本冲突
 """
 import os
-from typing import List, Dict, Any
-from pydantic import BaseSettings, Field
+from typing import List, Dict, Any, Optional
+from dataclasses import dataclass, field
 
 
-class Settings(BaseSettings):
-    """应用配置"""
+@dataclass
+class Settings:
+    """应用配置 - 使用dataclass避免pydantic依赖"""
     
     # 应用设置
     app_name: str = "广西油价监控分析系统"

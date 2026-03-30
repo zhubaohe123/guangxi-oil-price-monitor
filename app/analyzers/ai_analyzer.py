@@ -7,7 +7,7 @@ from typing import List, Dict, Any, Optional
 import openai
 from sqlalchemy import select, desc
 
-from app.config import settings
+from app.config_simple import settings
 from app.database.models import OilPrice, NewsArticle, AnalysisResult
 from app.database import get_session
 

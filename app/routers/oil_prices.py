@@ -466,7 +466,7 @@ async def compare_prices(
 async def get_data_sources():
     """获取数据源信息"""
     try:
-        from app.config import settings
+        from app.config_simple import settings
         
         sources = []
         

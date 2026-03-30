@@ -8,10 +8,11 @@ from fastapi.responses import FileResponse, JSONResponse
 from contextlib import asynccontextmanager
 import uvicorn
 
-from app.config import settings
-from app.database import init_db, get_session
-from app.routers import oil_prices, analysis, charts, news
-from app.scheduler import init_scheduler
+from app.config_simple import settings
+from app.database_sync import init_db, get_session
+# 暂时注释掉路由和调度器，先让应用启动
+# from app.routers import oil_prices, analysis, charts, news
+# from app.scheduler import init_scheduler
 
 # 配置日志
 logging.basicConfig(
