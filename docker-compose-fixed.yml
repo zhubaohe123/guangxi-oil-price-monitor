@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # 主应用服务
+  # 主应用服务 - 使用简化版本
   oil-monitor:
     build: .
     container_name: guangxi-oil-monitor
@@ -25,9 +25,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
 
-  # Redis缓存
+  # Redis缓存和消息队列
   redis:
     image: redis:7-alpine
     container_name: oil-monitor-redis
@@ -38,7 +37,7 @@ services:
       - redis-data:/data
     command: redis-server --appendonly yes
 
-  # PostgreSQL数据库（可选）
+  # PostgreSQL数据库（可选，默认使用SQLite）
   postgres:
     image: postgres:15-alpine
     container_name: oil-monitor-db
@@ -56,25 +55,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
-
-  # 定时任务调度器（可选）
-  scheduler:
-    build: .
-    container_name: oil-monitor-scheduler
-    restart: unless-stopped
-    depends_on:
-      - oil-monitor
-    volumes:
-      - ./data:/app/data
-      - ./logs:/app/logs
-      - ./config:/app/config
-    environment:
-      - TZ=Asia/Shanghai
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENAI_BASE_URL=${OPENAI_BASE_URL}
-    command: >
-      python app/scheduler.py
 
 volumes:
   redis-data:
