@@ -7,6 +7,7 @@ import uvicorn
 
 from app.config_simple import settings
 from app.database_sync import init_db
+from app.routers.oil_prices_simple import router as oil_prices_router
 
 # 配置日志
 logging.basicConfig(
@@ -20,6 +21,9 @@ app = FastAPI(
     title=settings.app_name,
     version=settings.app_version
 )
+
+# 注册路由
+app.include_router(oil_prices_router)
 
 
 @app.on_event("startup")
