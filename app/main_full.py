@@ -503,10 +503,26 @@ def analyze_and_recommend() -> Dict[str, Any]:
     else:
         trend = "数据不足"
     
-    # 生成推荐
-    if trend == "上涨" and weekly_change > 0.05:
+    # 获取相关新闻（用于分析）
+    news_context = ""
+    with get_db() as conn:
+        news_rows = conn.execute(
+            "SELECT title FROM news_articles ORDER BY collected_at DESC LIMIT 5"
+        ).fetchall()
+        if news_rows:
+            news_context = "；".join([r["title"][:30] for r in news_rows[:3]])
+    
+    # 生成推荐（结合新闻）
+    news_boost = 0
+    if news_context:
+        if any(kw in news_context for kw in ["上涨", "上调", "涨", "突破"]):
+            news_boost = 0.1
+        elif any(kw in news_context for kw in ["下跌", "下调", "降", "回落"]):
+            news_boost = -0.1
+    
+    if trend == "上涨" and (weekly_change > 0.05 or news_boost > 0):
         recommendation = "⛽ 建议今天就去加油！油价处于上涨趋势，提前加油可以节省开支。"
-        confidence = 0.85
+        confidence = min(0.95, 0.85 + news_boost)
     elif trend == "上涨" and weekly_change > 0:
         recommendation = "📈 油价小幅上涨中，如果油箱不多了建议这两天加满。"
         confidence = 0.75
@@ -526,6 +542,8 @@ def analyze_and_recommend() -> Dict[str, Any]:
         prices = [r["avg_92"] for r in trend_rows]
         trend_summary = f"近7天92号汽油均价从{prices[0]:.2f}元涨跌至{prices[-1]:.2f}元，" if len(prices) >= 2 else ""
     
+    news_summary = f"近期新闻：{news_context}。" if news_context else ""
+    
     summary = (
         f"今日广西92号汽油均价{avg_92:.2f}元/升，"
         f"95号汽油均价{avg_95:.2f}元/升，"
@@ -533,6 +551,7 @@ def analyze_and_recommend() -> Dict[str, Any]:
         f"{'较昨日' + ('上涨' if daily_change > 0 else '下跌') + f'{abs(daily_change):.2f}元' if abs(daily_change) > 0.001 else '与昨日持平'}。"
         f"{trend_summary}"
         f"整体趋势：{trend}。"
+        f"{news_summary}"
     )
     
     result = {
@@ -563,25 +582,32 @@ def analyze_and_recommend() -> Dict[str, Any]:
 # 定时任务
 # ============================================================
 def daily_task():
-    """每日定时任务：收集油价 + 收集新闻 + AI分析"""
-    logger.info("⏰ 执行每日定时任务...")
+    """每日定时任务：收集真实油价 + 真实新闻 + AI分析"""
+    logger.info("⏰ 执行每日定时任务（真实数据源）...")
     try:
-        # 1. 收集油价
-        prices = collect_oil_prices()
-        save_oil_prices(prices)
-        logger.info(f"✅ 收集{len(prices)}条油价数据")
+        from app.real_data_fetcher import collect_all
+        result = collect_all()
         
-        # 2. 收集新闻
-        news = collect_news()
-        save_news(news)
-        logger.info(f"✅ 收集{len(news)}条新闻")
+        if result.get("oil_prices"):
+            logger.info(f"✅ 真实油价: 92号={result['oil_prices']['gasoline_92']}  95号={result['oil_prices']['gasoline_95']}")
+        logger.info(f"✅ 历史数据: {result.get('history_count', 0)}条")
+        logger.info(f"✅ 真实新闻: {result.get('news_count', 0)}条")
         
-        # 3. AI分析
-        result = analyze_and_recommend()
-        logger.info(f"✅ 分析完成：{result['recommendation'][:50]}...")
+        # AI分析
+        analysis = analyze_and_recommend()
+        logger.info(f"✅ 分析完成：{analysis['recommendation'][:50]}...")
         
     except Exception as e:
         logger.error(f"❌ 每日任务执行失败: {e}")
+        # 备用方案
+        try:
+            prices = collect_oil_prices()
+            save_oil_prices(prices)
+            news = collect_news()
+            save_news(news)
+            analyze_and_recommend()
+        except Exception as e2:
+            logger.error(f"❌ 备用方案也失败: {e2}")
 
 def start_scheduler():
     """启动定时任务调度器"""
@@ -938,17 +964,25 @@ async def get_today_news():
     today = datetime.now().strftime("%Y-%m-%d")
     with get_db() as conn:
         rows = conn.execute(
-            "SELECT * FROM news_articles WHERE published_at >= ? ORDER BY relevance_score DESC LIMIT 10",
+            "SELECT * FROM news_articles WHERE published_at >= ? ORDER BY relevance_score DESC LIMIT 15",
             (today,)
         ).fetchall()
     
     if not rows:
-        # 没有就收集一次
-        news = collect_news()
-        save_news(news)
+        # 使用真实数据采集器
+        try:
+            from app.real_data_fetcher import fetch_all_news, save_news
+            articles = fetch_all_news()
+            if articles:
+                save_news(articles)
+        except Exception:
+            # 备用
+            articles = collect_news()
+            save_news(articles)
+        
         with get_db() as conn:
             rows = conn.execute(
-                "SELECT * FROM news_articles WHERE published_at >= ? ORDER BY relevance_score DESC LIMIT 10",
+                "SELECT * FROM news_articles WHERE published_at >= ? ORDER BY relevance_score DESC LIMIT 15",
                 (today,)
             ).fetchall()
     
