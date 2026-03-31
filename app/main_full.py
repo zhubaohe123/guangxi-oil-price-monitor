@@ -119,43 +119,86 @@ def get_db():
 GUANGXI_REGIONS = settings.guangxi_regions
 
 # 基础油价（模拟数据用）
+# 基准油价（来自汽车之家2026-03-31真实数据，广西全区统一价）
 BASE_PRICES = {
-    "南宁": {"gasoline_92": 7.88, "gasoline_95": 9.08, "diesel_0": 7.54},
-    "柳州": {"gasoline_92": 7.86, "gasoline_95": 9.06, "diesel_0": 7.52},
-    "桂林": {"gasoline_92": 7.87, "gasoline_95": 9.07, "diesel_0": 7.53},
-    "梧州": {"gasoline_92": 7.85, "gasoline_95": 9.05, "diesel_0": 7.51},
-    "北海": {"gasoline_92": 7.89, "gasoline_95": 9.09, "diesel_0": 7.55},
-    "防城港": {"gasoline_92": 7.84, "gasoline_95": 9.04, "diesel_0": 7.50},
-    "钦州": {"gasoline_92": 7.86, "gasoline_95": 9.06, "diesel_0": 7.52},
-    "贵港": {"gasoline_92": 7.85, "gasoline_95": 9.05, "diesel_0": 7.51},
-    "玉林": {"gasoline_92": 7.87, "gasoline_95": 9.07, "diesel_0": 7.53},
-    "百色": {"gasoline_92": 7.83, "gasoline_95": 9.03, "diesel_0": 7.49},
-    "贺州": {"gasoline_92": 7.85, "gasoline_95": 9.05, "diesel_0": 7.51},
-    "河池": {"gasoline_92": 7.84, "gasoline_95": 9.04, "diesel_0": 7.50},
-    "来宾": {"gasoline_92": 7.86, "gasoline_95": 9.06, "diesel_0": 7.52},
-    "崇左": {"gasoline_92": 7.85, "gasoline_95": 9.05, "diesel_0": 7.51},
+    "南宁": {"gasoline_92": 8.62, "gasoline_95": 9.31, "diesel_0": 8.31},
+    "柳州": {"gasoline_92": 8.62, "gasoline_95": 9.31, "diesel_0": 8.31},
+    "桂林": {"gasoline_92": 8.62, "gasoline_95": 9.31, "diesel_0": 8.31},
+    "梧州": {"gasoline_92": 8.62, "gasoline_95": 9.31, "diesel_0": 8.31},
+    "北海": {"gasoline_92": 8.62, "gasoline_95": 9.31, "diesel_0": 8.31},
+    "防城港": {"gasoline_92": 8.62, "gasoline_95": 9.31, "diesel_0": 8.31},
+    "钦州": {"gasoline_92": 8.62, "gasoline_95": 9.31, "diesel_0": 8.31},
+    "贵港": {"gasoline_92": 8.62, "gasoline_95": 9.31, "diesel_0": 8.31},
+    "玉林": {"gasoline_92": 8.62, "gasoline_95": 9.31, "diesel_0": 8.31},
+    "百色": {"gasoline_92": 8.62, "gasoline_95": 9.31, "diesel_0": 8.31},
+    "贺州": {"gasoline_92": 8.62, "gasoline_95": 9.31, "diesel_0": 8.31},
+    "河池": {"gasoline_92": 8.62, "gasoline_95": 9.31, "diesel_0": 8.31},
+    "来宾": {"gasoline_92": 8.62, "gasoline_95": 9.31, "diesel_0": 8.31},
+    "崇左": {"gasoline_92": 8.62, "gasoline_95": 9.31, "diesel_0": 8.31},
 }
 
 def collect_oil_prices() -> List[Dict[str, Any]]:
-    """收集今日油价（带随机波动的模拟数据，真实爬取会被封IP）"""
+    """从汽车之家抓取广西真实油价"""
+    import requests
+    import re
+    
     today = date.today().isoformat()
     prices = []
     
+    try:
+        # 抓取汽车之家广西油价页面
+        resp = requests.get(
+            "https://www.autohome.com.cn/oil/450000.html",
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "Accept": "text/html",
+                "Accept-Language": "zh-CN,zh;q=0.9",
+            },
+            timeout=15,
+        )
+        
+        if resp.status_code == 200:
+            text = resp.text
+            # 提取价格数据
+            # 格式: 92号汽油为X.XX元，95号汽油为X.XX元，0号柴油为X.XX元
+            match_92 = re.search(r'92号汽油为(\d+\.?\d*)元', text)
+            match_95 = re.search(r'95号汽油为(\d+\.?\d*)元', text)
+            match_diesel = re.search(r'0号柴油为(\d+\.?\d*)元', text)
+            
+            if match_92 and match_95 and match_diesel:
+                p92 = float(match_92.group(1))
+                p95 = float(match_95.group(1))
+                p0 = float(match_diesel.group(1))
+                
+                logger.info(f"✅ 从汽车之家获取到真实油价: 92号={p92}, 95号={p95}, 0号={p0}")
+                
+                # 广西全区统一价，各地区使用相同价格
+                for region in GUANGXI_REGIONS:
+                    prices.append({
+                        "region": region,
+                        "date": today,
+                        "gasoline_92": p92,
+                        "gasoline_95": p95,
+                        "diesel_0": p0,
+                        "source": "汽车之家(真实)",
+                    })
+                
+                return prices
+            else:
+                logger.warning("无法解析油价数据，使用备用方案")
+    except Exception as e:
+        logger.error(f"抓取汽车之家失败: {e}，使用备用方案")
+    
+    # 备用方案: 使用基准数据+随机波动
     for region, base in BASE_PRICES.items():
-        # 添加随机波动 ±0.05
         p92 = round(base["gasoline_92"] + random.uniform(-0.05, 0.05), 2)
         p95 = round(base["gasoline_95"] + random.uniform(-0.05, 0.05), 2)
         p0  = round(base["diesel_0"]   + random.uniform(-0.05, 0.05), 2)
-        
         prices.append({
-            "region": region,
-            "date": today,
-            "gasoline_92": p92,
-            "gasoline_95": p95,
-            "diesel_0": p0,
-            "source": "数据采集",
+            "region": region, "date": today,
+            "gasoline_92": p92, "gasoline_95": p95, "diesel_0": p0,
+            "source": "备用数据",
         })
-    
     return prices
 
 def save_oil_prices(prices: List[Dict[str, Any]]):
