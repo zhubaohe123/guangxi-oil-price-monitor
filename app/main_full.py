@@ -120,20 +120,20 @@ GUANGXI_REGIONS = settings.guangxi_regions
 
 # 基础油价（模拟数据用）
 BASE_PRICES = {
-    "南宁": {"gasoline_92": 7.85, "gasoline_95": 8.45, "diesel_0": 7.52},
-    "柳州": {"gasoline_92": 7.83, "gasoline_95": 8.43, "diesel_0": 7.50},
-    "桂林": {"gasoline_92": 7.84, "gasoline_95": 8.44, "diesel_0": 7.51},
-    "梧州": {"gasoline_92": 7.82, "gasoline_95": 8.42, "diesel_0": 7.49},
-    "北海": {"gasoline_92": 7.86, "gasoline_95": 8.46, "diesel_0": 7.53},
-    "防城港": {"gasoline_92": 7.81, "gasoline_95": 8.41, "diesel_0": 7.48},
-    "钦州": {"gasoline_92": 7.83, "gasoline_95": 8.43, "diesel_0": 7.50},
-    "贵港": {"gasoline_92": 7.82, "gasoline_95": 8.42, "diesel_0": 7.49},
-    "玉林": {"gasoline_92": 7.84, "gasoline_95": 8.44, "diesel_0": 7.51},
-    "百色": {"gasoline_92": 7.80, "gasoline_95": 8.40, "diesel_0": 7.47},
-    "贺州": {"gasoline_92": 7.82, "gasoline_95": 8.42, "diesel_0": 7.49},
-    "河池": {"gasoline_92": 7.81, "gasoline_95": 8.41, "diesel_0": 7.48},
-    "来宾": {"gasoline_92": 7.83, "gasoline_95": 8.43, "diesel_0": 7.50},
-    "崇左": {"gasoline_92": 7.82, "gasoline_95": 8.42, "diesel_0": 7.49},
+    "南宁": {"gasoline_92": 7.88, "gasoline_95": 9.08, "diesel_0": 7.54},
+    "柳州": {"gasoline_92": 7.86, "gasoline_95": 9.06, "diesel_0": 7.52},
+    "桂林": {"gasoline_92": 7.87, "gasoline_95": 9.07, "diesel_0": 7.53},
+    "梧州": {"gasoline_92": 7.85, "gasoline_95": 9.05, "diesel_0": 7.51},
+    "北海": {"gasoline_92": 7.89, "gasoline_95": 9.09, "diesel_0": 7.55},
+    "防城港": {"gasoline_92": 7.84, "gasoline_95": 9.04, "diesel_0": 7.50},
+    "钦州": {"gasoline_92": 7.86, "gasoline_95": 9.06, "diesel_0": 7.52},
+    "贵港": {"gasoline_92": 7.85, "gasoline_95": 9.05, "diesel_0": 7.51},
+    "玉林": {"gasoline_92": 7.87, "gasoline_95": 9.07, "diesel_0": 7.53},
+    "百色": {"gasoline_92": 7.83, "gasoline_95": 9.03, "diesel_0": 7.49},
+    "贺州": {"gasoline_92": 7.85, "gasoline_95": 9.05, "diesel_0": 7.51},
+    "河池": {"gasoline_92": 7.84, "gasoline_95": 9.04, "diesel_0": 7.50},
+    "来宾": {"gasoline_92": 7.86, "gasoline_95": 9.06, "diesel_0": 7.52},
+    "崇左": {"gasoline_92": 7.85, "gasoline_95": 9.05, "diesel_0": 7.51},
 }
 
 def collect_oil_prices() -> List[Dict[str, Any]]:
