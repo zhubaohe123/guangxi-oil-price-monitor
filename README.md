@@ -1,12 +1,14 @@
-# 🛢️ 广西油价监控分析系统
+# 🛢️ 广西油价监控分析系统 v2.0
 
-[![GitHub stars](https://img.shields.io/github/stars/yourusername/guangxi-oil-price-monitor?style=social)](https://github.com/yourusername/guangxi-oil-price-monitor/stargazers)
-[![Docker Pulls](https://img.shields.io/docker/pulls/yourusername/guangxi-oil-monitor)](https://hub.docker.com/r/yourusername/guangxi-oil-monitor)
-[![License](https://img.shields.io/github/license/yourusername/guangxi-oil-price-monitor)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/zhubaohe123/guangxi-oil-price-monitor?style=social)](https://github.com/zhubaohe123/guangxi-oil-price-monitor)
+[![Docker Pulls](https://img.shields.io/docker/pulls/zhubaohe123/guangxi-oil-monitor)](https://hub.docker.com/r/zhubaohe123/guangxi-oil-monitor)
+[![License](https://img.shields.io/github/license/zhubaohe123/guangxi-oil-price-monitor)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green)](https://fastapi.tiangolo.com/)
 
 一个完全免费的Docker应用，每天自动收集广西各地油价，进行AI智能分析，生成可视化图表，并提供加油推荐。🌸
+
+> **v2.0 更新**: 新增Web UI界面，整合所有功能为单一入口 `main_full.py`，油价按价格排序，每日定时自动执行分析。
 
 ## ✨ 特性亮点
 
@@ -16,9 +18,15 @@
 - **自动降级机制**：免费源失败时自动使用模拟数据，保证服务可用
 
 ### 🤖 **AI智能分析**
-- **趋势分析**：使用DeepSeek API分析油价变化趋势
-- **加油推荐**：智能判断今日是否适合加油
-- **新闻关联**：结合财经新闻分析市场影响因素
+- **趋势分析**：分析油价变化趋势，判断上涨/下跌/平稳
+- **加油推荐**：智能判断今日是否适合加油，含置信度
+- **新闻关联**：收集油价相关新闻资讯
+
+### 🌐 **Web UI界面**
+- **可视化仪表板**：系统状态、今日油价、AI推荐一目了然
+- **交互式图表**：Plotly趋势图、地区对比图、日历热力图
+- **新闻资讯**：实时油价相关新闻
+- **一键采集**：支持手动触发数据更新
 
 ### 📊 **丰富可视化**
 - **趋势图表**：最近30天油价变化曲线

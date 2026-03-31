@@ -19,7 +19,7 @@ services:
       - DATABASE_URL=sqlite:///data/oil_prices.db
       - LOG_LEVEL=INFO
     command: >
-      uvicorn app.main_simple:app --host 0.0.0.0 --port 8000
+      python -c 'import sys; sys.path.insert(0, "/app"); from app.main_full import app; import uvicorn; uvicorn.run(app, host="0.0.0.0", port=8000)'
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
