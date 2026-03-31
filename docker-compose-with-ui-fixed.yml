@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  # 主应用服务 - 带UI界面
+  oil-monitor-ui:
+    build: .
+    container_name: guangxi-oil-monitor-ui
+    restart: unless-stopped
+    ports:
+      - "8011:8000"  # 使用新端口8011，避免与现有服务冲突
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config:/app/config
+      - ./simple_ui.html:/app/simple_ui.html  # 挂载UI文件
+    environment:
+      - TZ=Asia/Shanghai
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-sk-demo-key}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.deepseek.com/v1}
+      - DATABASE_URL=sqlite:///data/oil_prices.db
+      - LOG_LEVEL=INFO
+    command: >
+      sh -c "cd /app && python -c '
+import sys
+sys.path.insert(0, \"/app\")
+from app.main_with_ui import app
+import uvicorn
+uvicorn.run(app, host=\"0.0.0.0\", port=8000)
+'"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+volumes:
+  redis-data-ui:

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>广西油价监控系统</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        .healthy {
+            background: #d4edda;
+            color: #155724;
+        }
+        .regions {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .region {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+        .api-links {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        .api-link {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        .api-link:hover {
+            background: #0056b3;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛢️ 广西油价监控系统</h1>
+        <p>实时监控广西各地油价，提供智能分析</p>
+    </div>
+    
+    <div id="loading" class="loading">
+        <p>正在加载数据...</p>
+    </div>
+    
+    <div id="content" style="display: none;">
+        <div class="card">
+            <h2>系统状态</h2>
+            <p><strong>应用：</strong> <span id="app-name"></span></p>
+            <p><strong>版本：</strong> <span id="app-version"></span></p>
+            <p><strong>状态：</strong> <span id="app-status" class="status healthy">运行中</span></p>
+            <p><strong>最后更新：</strong> <span id="last-update"></span></p>
+        </div>
+        
+        <div class="card">
+            <h2>今日油价</h2>
+            <p><strong>日期：</strong> <span id="today-date"></span></p>
+            <p><strong>数据状态：</strong> <span id="data-status"></span></p>
+            <p><strong>说明：</strong> <span id="data-note"></span></p>
+            
+            <h3>监控地区</h3>
+            <div id="regions" class="regions">
+                <!-- 地区会动态加载 -->
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>API接口</h2>
+            <div class="api-links">
+                <a href="/docs" target="_blank" class="api-link">📚 API文档</a>
+                <a href="/health" target="_blank" class="api-link">❤️ 健康检查</a>
+                <a href="/api/oil-prices/today" target="_blank" class="api-link">📊 今日油价API</a>
+                <button onclick="refreshData()" class="api-link">🔄 刷新数据</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 配置API地址 - 修改这里为你的域名
+        const API_BASE = 'http://zbhly.icu:8010';
+        
+        async function loadData() {
+            try {
+                // 加载应用信息
+                const appRes = await fetch(`${API_BASE}/`);
+                const appData = await appRes.json();
+                
+                // 加载今日油价
+                const priceRes = await fetch(`${API_BASE}/api/oil-prices/today`);
+                const priceData = await priceRes.json();
+                
+                // 加载健康状态
+                const healthRes = await fetch(`${API_BASE}/health`);
+                const healthData = await healthRes.json();
+                
+                // 更新页面
+                updatePage(appData, priceData, healthData);
+                
+                // 显示内容，隐藏加载动画
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+                
+            } catch (error) {
+                console.error('加载失败:', error);
+                document.getElementById('loading').innerHTML = `
+                    <div style="color: red;">
+                        <h3>加载失败</h3>
+                        <p>无法连接到API服务器</p>
+                        <p>请检查：</p>
+                        <ul>
+                            <li>API服务是否运行（端口8010）</li>
+                            <li>网络连接是否正常</li>
+                            <li>域名解析是否正确</li>
+                        </ul>
+                        <button onclick="location.reload()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                            重试
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        
+        function updatePage(appData, priceData, healthData) {
+            // 更新应用信息
+            document.getElementById('app-name').textContent = appData.app;
+            document.getElementById('app-version').textContent = appData.version;
+            
+            // 更新油价信息
+            document.getElementById('today-date').textContent = priceData.date;
+            document.getElementById('data-status').textContent = priceData.status;
+            document.getElementById('data-note').textContent = priceData.note;
+            
+            // 更新最后更新时间
+            const now = new Date();
+            document.getElementById('last-update').textContent = 
+                `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+            
+            // 更新地区列表
+            const regionsContainer = document.getElementById('regions');
+            regionsContainer.innerHTML = '';
+            
+            if (priceData.regions && priceData.regions.length > 0) {
+                priceData.regions.forEach(region => {
+                    const regionDiv = document.createElement('div');
+                    regionDiv.className = 'region';
+                    regionDiv.textContent = region;
+                    regionsContainer.appendChild(regionDiv);
+                });
+            }
+            
+            // 更新状态
+            const statusEl = document.getElementById('app-status');
+            if (healthData.status === 'healthy') {
+                statusEl.textContent = '健康运行';
+                statusEl.className = 'status healthy';
+            } else {
+                statusEl.textContent = '运行异常';
+                statusEl.className = 'status unhealthy';
+                statusEl.style.background = '#f8d7da';
+                statusEl.style.color = '#721c24';
+            }
+        }
+        
+        function refreshData() {
+            const btn = document.querySelector('button[onclick="refreshData()"]');
+            btn.textContent = '刷新中...';
+            btn.disabled = true;
+            
+            loadData().finally(() => {
+                setTimeout(() => {
+                    btn.textContent = '🔄 刷新数据';
+                    btn.disabled = false;
+                }, 1000);
+            });
+        }
+        
+        // 页面加载时获取数据
+        document.addEventListener('DOMContentLoaded', loadData);
+        
+        // 每2分钟自动刷新
+        setInterval(loadData, 2 * 60 * 1000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # 主应用服务 - 使用端口8010避免冲突
+  oil-monitor:
+    build: .
+    container_name: guangxi-oil-monitor
+    restart: unless-stopped
+    ports:
+      - "8010:8000"  # 外部端口:内部端口
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - TZ=Asia/Shanghai
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-sk-demo-key}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.deepseek.com/v1}
+      - DATABASE_URL=sqlite:///data/oil_prices.db
+      - LOG_LEVEL=INFO
+    command: >
+      sh -c "cd /app && python -c '
+import sys
+sys.path.insert(0, \"/app\")
+from app.main_simple import app
+import uvicorn
+uvicorn.run(app, host=\"0.0.0.0\", port=8000)
+'"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s  # 给应用更多启动时间
+
+  # Redis缓存 - 使用端口6380避免冲突
+  redis:
+    image: redis:7-alpine
+    container_name: oil-monitor-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"  # 外部端口:内部端口
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+
+  # PostgreSQL数据库 - 使用端口5433避免冲突（可选）
+  postgres:
+    image: postgres:15-alpine
+    container_name: oil-monitor-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=oilmonitor
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-oilmonitor123}
+      - POSTGRES_DB=oil_prices
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"  # 外部端口:内部端口
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oilmonitor"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  redis-data:
+  postgres-data:

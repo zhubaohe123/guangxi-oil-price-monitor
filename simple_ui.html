@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>广西油价监控系统 - 可视化界面</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+            animation: float 20s linear infinite;
+        }
+        
+        @keyframes float {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(-20px, -20px) rotate(360deg); }
+        }
+        
+        .header h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card h2 i {
+            font-size: 1.8rem;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+        
+        .status-healthy {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .regions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .region-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+        
+        .region-item:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: scale(1.05);
+        }
+        
+        .api-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        
+        .api-endpoints {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .endpoint {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .endpoint code {
+            display: block;
+            background: #f1f3f5;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #495057;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: #6c757d;
+            border-top: 1px solid #e9ecef;
+            margin-top: 40px;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .regions-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-gas-pump"></i> 广西油价监控分析系统</h1>
+            <p>实时监控广西各地油价，智能分析趋势，提供加油建议</p>
+        </div>
+        
+        <div class="content">
+            <div id="loading" class="loading">
+                <div class="loading-spinner"></div>
+                <p>正在加载油价数据...</p>
+            </div>
+            
+            <div id="dashboard" class="dashboard" style="display: none;">
+                <!-- 应用状态卡片 -->
+                <div class="card">
+                    <h2><i class="fas fa-heartbeat"></i> 系统状态</h2>
+                    <div id="status-badge" class="status-badge status-healthy">健康运行</div>
+                    <p><strong>应用名称：</strong> <span id="app-name">广西油价监控分析系统</span></p>
+                    <p><strong>版本：</strong> <span id="app-version">1.0.0</span></p>
+                    <p><strong>运行模式：</strong> <span id="app-mode">no-database</span></p>
+                    <p><strong>最后更新：</strong> <span id="last-update">刚刚</span></p>
+                </div>
+                
+                <!-- 今日油价卡片 -->
+                <div class="card">
+                    <h2><i class="fas fa-calendar-day"></i> 今日油价</h2>
+                    <p><strong>日期：</strong> <span id="today-date">2026-03-31</span></p>
+                    <p><strong>状态：</strong> <span id="price-status">数据收集功能正常</span></p>
+                    <p><strong>备注：</strong> <span id="price-note">这是简化版本，完整功能需要配置数据源</span></p>
+                    
+                    <h3 style="margin-top: 25px; margin-bottom: 15px; color: #495057;">监控地区</h3>
+                    <div id="regions-container" class="regions-grid">
+                        <!-- 地区列表将通过JavaScript动态生成 -->
+                    </div>
+                </div>
+                
+                <!-- API信息卡片 -->
+                <div class="card">
+                    <h2><i class="fas fa-code"></i> API接口</h2>
+                    <p>系统提供以下REST API接口：</p>
+                    
+                    <div class="api-info">
+                        <div class="api-endpoints">
+                            <div class="endpoint">
+                                <strong>健康检查</strong>
+                                <code>GET /health</code>
+                            </div>
+                            <div class="endpoint">
+                                <strong>今日油价</strong>
+                                <code>GET /api/oil-prices/today</code>
+                            </div>
+                            <div class="endpoint">
+                                <strong>API文档</strong>
+                                <code>GET /docs</code>
+                            </div>
+                            <div class="endpoint">
+                                <strong>应用信息</strong>
+                                <code>GET /</code>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="actions">
+                        <a href="/docs" target="_blank" class="btn">
+                            <i class="fas fa-book"></i> 查看API文档
+                        </a>
+                        <button onclick="refreshData()" class="btn btn-secondary">
+                            <i class="fas fa-sync-alt"></i> 刷新数据
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer">
+                <p>© 2026 广西油价监控分析系统 | 版本 1.0.0 | 数据仅供参考</p>
+                <p style="margin-top: 10px; font-size: 0.9rem;">
+                    <i class="fas fa-info-circle"></i> 这是一个开源项目，欢迎贡献代码和反馈建议
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 获取当前域名和端口
+        const API_BASE = window.location.origin;
+        
+        // 加载应用数据
+        async function loadAppData() {
+            try {
+                // 获取应用信息
+                const appResponse = await fetch(`${API_BASE}/`);
+                const appData = await appResponse.json();
+                
+                // 获取今日油价
+                const priceResponse = await fetch(`${API_BASE}/api/oil-prices/today`);
+                const priceData = await priceResponse.json();
+                
+                // 获取健康状态
+                const healthResponse = await fetch(`${API_BASE}/health`);
+                const healthData = await healthResponse.json();
+                
+                // 更新UI
+                updateUI(appData, priceData, healthData);
+                
+                // 隐藏加载动画，显示仪表板
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'grid';
+                
+            } catch (error) {
+                console.error('加载数据失败:', error);
+                document.getElementById('loading').innerHTML = `
+                    <div style="color: #dc3545;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 20px;"></i>
+                        <h3>数据加载失败</h3>
+                        <p>无法连接到API服务器，请检查网络连接</p>
+                        <button onclick="location.reload()" class="btn" style="margin-top: 20px;">
+                            <i class="fas fa-redo"></i> 重试
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        
+        // 更新UI显示
+        function updateUI(appData, priceData, healthData) {
+            // 应用信息
+            document.getElementById('app-name').textContent = appData.app;
+            document.getElementById('app-version').textContent = appData.version;
+            document.getElementById('app-mode').textContent = appData.mode;
+            
+            // 今日油价
+            document.getElementById('today-date').textContent = priceData.date;
+            document.getElementById('price-status').textContent = priceData.status;
+            document.getElementById('price-note').textContent = priceData.note;
+            
+            // 更新最后更新时间
+            const now = new Date();
+            document.getElementById('last-update').textContent = 
+                `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+            
+            // 更新状态徽章
+            const statusBadge = document.getElementById('status-badge');
+            if (healthData.status === 'healthy') {
+                statusBadge.className = 'status-badge status-healthy';
+                statusBadge.textContent = '健康运行';
+            } else {
+                statusBadge.className = 'status-badge status-warning';
+                statusBadge.textContent = '运行异常';
+            }
+            
+            // 生成地区列表
+            const regionsContainer = document.getElementById('regions-container');
+            regionsContainer.innerHTML = '';
+            
+            if (priceData.regions && priceData.regions.length > 0) {
+                priceData.regions.forEach(region => {
+                    const regionElement = document.createElement('div');
+                    regionElement.className = 'region-item';
+                    regionElement.innerHTML = `
+                        <i class="fas fa-map-marker-alt" style="margin-bottom: 8px; color: #667eea;"></i>
+                        <div>${region}</div>
+                    `;
+                    regionsContainer.appendChild(regionElement);
+                });
+            } else {
+                regionsContainer.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: #6c757d;">暂无地区数据</p>';
+            }
+        }
+        
+        // 刷新数据
+        function refreshData() {
+            const refreshBtn = document.querySelector('button[onclick="refreshData()"]');
+            const originalText = refreshBtn.innerHTML;
+            refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 刷新中...';
+            refreshBtn.disabled = true;
+            
+            // 重新加载数据
+            loadAppData().finally(() => {
+                setTimeout(() => {
+                    refreshBtn.innerHTML = originalText;
+                    refreshBtn.disabled = false;
+                }, 1000);
+            });
+        }
+        
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', loadAppData);
+        
+        // 每5分钟自动刷新一次数据
+        setInterval(loadAppData, 5 * 60 * 1000);
+    </script>
+</body>
+</html>
