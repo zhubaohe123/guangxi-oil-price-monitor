@@ -59,8 +59,9 @@ class OilPriceCollector:
             # 这里实现具体的数据收集逻辑
             # 实际项目中需要根据不同的数据源实现
             
-            # 模拟数据（实际项目需要从网站抓取）
-            price_data = await self._simulate_collection(region)
+            # TODO: 优先从真实数据源抓取，失败时回退到示例数据
+            # price_data = await self.collect_from_website(url_for_region)
+            price_data = await self._generate_sample_data(region)
             
             if price_data:
                 return OilPrice(
@@ -77,8 +78,12 @@ class OilPriceCollector:
             logger.error(f"收集{region}油价数据异常: {e}")
             return None
     
-    async def _simulate_collection(self, region: str) -> Dict[str, Any]:
-        """模拟数据收集（实际项目需要替换为真实数据源）"""
+    async def _generate_sample_data(self, region: str) -> Dict[str, Any]:
+        """生成示例油价数据
+        TODO: 此方法为占位实现，需要替换为真实数据源解析。
+        可用数据源: 易车网(yiche), 汽车之家(autohome), 油价网(youjiawang)
+        实现时应调用 collect_from_website() 并解析对应网站的 HTML 结构。
+        """
         # 模拟不同地区的油价（元/升）
         base_prices = {
             "南宁": {"gasoline_92": 7.85, "gasoline_95": 8.45, "diesel_0": 7.52},

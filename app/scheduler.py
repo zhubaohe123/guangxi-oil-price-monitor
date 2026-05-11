@@ -25,15 +25,25 @@ logger = logging.getLogger(__name__)
 def collect_oil_prices():
     """收集油价数据"""
     logger.info(f"[{datetime.now()}] 开始收集油价数据...")
-    # 这里可以调用数据收集器
-    logger.info(f"[{datetime.now()}] 油价数据收集完成")
+    import asyncio
+    from app.collectors.oil_price_collector import collector
+    try:
+        asyncio.run(collector.collect_all_regions())
+        logger.info(f"[{datetime.now()}] 油价数据收集完成")
+    except Exception as e:
+        logger.error(f"[{datetime.now()}] 油价数据收集失败: {e}")
 
 
 def analyze_prices():
     """分析油价数据"""
     logger.info(f"[{datetime.now()}] 开始分析油价数据...")
-    # 这里可以调用AI分析器
-    logger.info(f"[{datetime.now()}] 油价数据分析完成")
+    import asyncio
+    from app.analyzers.ai_analyzer import analyzer
+    try:
+        asyncio.run(analyzer.analyze_daily_prices())
+        logger.info(f"[{datetime.now()}] 油价数据分析完成")
+    except Exception as e:
+        logger.error(f"[{datetime.now()}] 油价数据分析失败: {e}")
 
 
 def init_scheduler():

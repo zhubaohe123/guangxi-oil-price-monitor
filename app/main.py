@@ -2,6 +2,7 @@
 主应用入口
 """
 import logging
+from datetime import datetime, timezone
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -9,9 +10,9 @@ from contextlib import asynccontextmanager
 import uvicorn
 
 from app.config_simple import settings
-from app.database_sync import init_db, get_session
-# 暂时注释掉路由和调度器，先让应用启动
-# from app.routers import oil_prices, analysis, charts, news
+from app.database import init_db, get_session
+from app.routers import oil_prices
+from app.routers import analysis, charts, news
 # from app.scheduler import init_scheduler
 
 # 配置日志
@@ -32,15 +33,15 @@ async def lifespan(app: FastAPI):
     await init_db()
     logger.info("数据库初始化完成")
     
-    # 初始化调度器
-    scheduler = init_scheduler()
-    scheduler.start()
-    logger.info("任务调度器启动完成")
+    # 初始化调度器（暂时禁用）
+    # scheduler = init_scheduler()
+    # scheduler.start()
+    logger.info("任务调度器启动完成（已禁用）")
     
     yield
     
     # 关闭时
-    scheduler.shutdown()
+    # scheduler.shutdown()
     logger.info("应用关闭")
 
 
@@ -84,13 +85,14 @@ async def health_check():
     """健康检查"""
     try:
         # 检查数据库连接
+        from sqlalchemy import text
         async with get_session() as session:
-            await session.execute("SELECT 1")
+            await session.execute(text("SELECT 1"))
         
         return {
             "status": "healthy",
             "database": "connected",
-            "timestamp": "2026-03-30T14:44:00Z"
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
     except Exception as e:
         logger.error(f"健康检查失败: {e}")

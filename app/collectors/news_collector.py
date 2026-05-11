@@ -420,41 +420,42 @@ class NewsCollector:
     
     async def _save_to_database(self, articles: List[Dict[str, Any]]):
         """保存新闻到数据库"""
+        news_objects = []
+        
+        for article in articles:
+            news = NewsArticle(
+                title=article["title"],
+                summary=article["summary"],
+                url=article["url"],
+                source=article["source"],
+                category=article["category"],
+                published_at=article["published_at"],
+                relevance_score=article.get("relevance_score", 0.5),
+                collected_at=datetime.now()
+            )
+            news_objects.append(news)
+        
         try:
-            news_objects = []
-            
-            for article in articles:
-                news = NewsArticle(
-                    title=article["title"],
-                    summary=article["summary"],
-                    url=article["url"],
-                    source=article["source"],
-                    category=article["category"],
-                    published_at=article["published_at"],
-                    relevance_score=article.get("relevance_score", 0.5),
-                    collected_at=datetime.now()
-                )
-                news_objects.append(news)
-            
             async with get_session() as session:
-                # 批量插入，忽略重复
-                for news in news_objects:
-                    # 检查是否已存在
-                    existing = await session.execute(
-                        "SELECT id FROM news_articles WHERE title = :title AND source = :source",
-                        {"title": news.title, "source": news.source}
-                    )
+                try:
+                    # 批量插入，忽略重复
+                    for news in news_objects:
+                        # 检查是否已存在
+                        existing = await session.execute(
+                            "SELECT id FROM news_articles WHERE title = :title AND source = :source",
+                            {"title": news.title, "source": news.source}
+                        )
+                        
+                        if not existing.fetchone():
+                            session.add(news)
                     
-                    if not existing.fetchone():
-                        session.add(news)
-                
-                await session.commit()
-                logger.info(f"成功保存 {len(news_objects)} 条新闻到数据库")
-                
+                    await session.commit()
+                    logger.info(f"成功保存 {len(news_objects)} 条新闻到数据库")
+                except Exception as e:
+                    await session.rollback()
+                    raise
         except Exception as e:
             logger.error(f"保存新闻到数据库失败: {e}")
-            if 'session' in locals():
-                await session.rollback()
     
     async def get_today_news(self, limit: int = 10) -> List[Dict[str, Any]]:
         """获取今日新闻"""

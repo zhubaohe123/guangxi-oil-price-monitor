@@ -20,23 +20,23 @@ class Settings:
     api_port: int = 8000
     
     # 数据库设置
-    database_url: str = Field(
-        default="sqlite:///data/oil_prices.db",
-        env="DATABASE_URL"
+    database_url: str = os.getenv(
+        "DATABASE_URL",
+        "sqlite:///data/oil_prices.db"
     )
     
     # AI设置
-    openai_api_key: str = Field(..., env="OPENAI_API_KEY")
-    openai_base_url: str = Field(
-        default="https://api.deepseek.com/v1",
-        env="OPENAI_BASE_URL"
+    openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
+    openai_base_url: str = os.getenv(
+        "OPENAI_BASE_URL",
+        "https://api.deepseek.com/v1"
     )
     openai_model: str = "deepseek-chat"
     
     # Redis设置
-    redis_url: str = Field(
-        default="redis://localhost:6379/0",
-        env="REDIS_URL"
+    redis_url: str = os.getenv(
+        "REDIS_URL",
+        "redis://localhost:6379/0"
     )
     
     # 数据收集设置
@@ -44,14 +44,14 @@ class Settings:
     analysis_schedule: str = "0 9 * * *"    # 每天9点分析
     
     # 广西地区列表
-    guangxi_regions: List[str] = [
+    guangxi_regions: List[str] = field(default_factory=lambda: [
         "南宁", "柳州", "桂林", "梧州", "北海",
         "防城港", "钦州", "贵港", "玉林", "百色",
         "贺州", "河池", "来宾", "崇左"
-    ]
+    ])
     
     # 油价数据源（免费）
-    oil_price_sources: List[Dict[str, Any]] = [
+    oil_price_sources: List[Dict[str, Any]] = field(default_factory=lambda: [
         {
             "name": "易车网油价查询",
             "url": "https://car.yiche.com/youjia/",
@@ -110,10 +110,10 @@ class Settings:
             "parser": "government_local",
             "region": "广西"
         }
-    ]
+    ])
     
     # 新闻数据源（免费）
-    news_sources: List[Dict[str, Any]] = [
+    news_sources: List[Dict[str, Any]] = field(default_factory=lambda: [
         {
             "name": "新华社能源RSS",
             "url": "http://www.xinhuanet.com/energy/news_energy.xml",
@@ -191,7 +191,7 @@ class Settings:
             "keywords": ["油价", "汽油", "柴油", "广西油价"],
             "free_tier": True
         }
-    ]
+    ])
     
     # 可视化设置
     chart_theme: str = "plotly_white"
@@ -202,10 +202,6 @@ class Settings:
     data_dir: str = "data"
     logs_dir: str = "logs"
     charts_dir: str = "data/charts"
-    
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
 
 
 # 创建配置实例
